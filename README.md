@@ -1,23 +1,16 @@
-# Template
-This is where she makes a mod.
+# Show Position Mod
 
-<img src="logo.png" width="150" alt="the mod's logo" />
+A simple mod for Geometry Dash that displays the exact X and Y coordinates of your player.
 
-*Update logo.png to change your mod's icon (please)*
+## Features
+* Accurate Coordinates: Shows X-Pos and Y-Pos up to 5 decimal places (e.g., 0.00000).
+* Easy to Use: Includes a toggle checkbox directly in the Pause Menu.
+* Clean UI: Displays neatly without obstructing gameplay.
 
-## Getting started
-We recommend heading over to [the getting started section on our docs](https://docs.geode-sdk.org/getting-started/) for useful info on what to do next.
-
-## Build instructions
-For more info, see [our docs](https://docs.geode-sdk.org/getting-started/create-mod#build)
-```sh
-# Assuming you have the Geode CLI set up already
-geode build
-```
-
-# Resources
-* [Geode SDK Documentation](https://docs.geode-sdk.org/)
-* [Geode SDK Source Code](https://github.com/geode-sdk/geode/)
-* [Geode CLI](https://github.com/geode-sdk/cli)
-* [Bindings](https://github.com/geode-sdk/bindings/)
-* [Dev Tools](https://github.com/geode-sdk/DevTools)
+## Installation
+1. Go to the Actions tab in this repository.
+2. Click on the latest successful build.
+3. Download the Android version (64-bit or 32-bit) from the Artifacts section.
+4. Extract the .zip file to get the .geode file.
+5. Place the .geode file into your geode/mods folder on your device.
+6. Open the game, pause a level, and check the Show Position box to use.
