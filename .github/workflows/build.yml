@@ -12,66 +12,24 @@ env:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - name: Android32
-            os: ubuntu-latest
-            target: Android32
-
-          - name: Android64
-            os: ubuntu-latest
-            target: Android64
-
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
+    name: Build Mod (Android 32 & 64)
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # Gọi duy nhất 1 Action để tự động tự build cả 2 nền tảng Android và tự động gộp lại thành file .geode hoàn chỉnh
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
+        id: build
         with:
-          combine: false
-          target: ${{ matrix.config.target }}
+          target: Android32 Android64
+          combine: true
 
-      # FIX TRIỆT ĐỂ: Quét trực tiếp thư mục build để tìm file mod mà không cần gọi biến của Geode
-      - name: Upload intermediate artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output-${{ matrix.config.target }}
-          path: |
-            build*/**/*.geode
-            out/**/*.geode
-            build/**/*.so
-          if-no-files-found: warn
-
-  package:
-    name: Package builds
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
-        with:
-          path: build-artifacts
-          pattern: build-output-*
-          merge-multiple: true
-
-      - uses: geode-sdk/build-geode-mod/combine@main
-        id: geode-combine
-        with:
-          path: build-artifacts
-
-      # FIX TRIỆT ĐỂ: Xuất file với tên cố định Show-Position.geode 
+      # Xuất file mod Show Position thành phẩm ra tab Artifacts
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Mod
-          path: |
-            build*/**/*.geode
-            out/**/*.geode
-            **/*.geode
+          path: ${{ steps.build.outputs.output-path || steps.build.outputs.build-output-path || '**/*.geode' }}
