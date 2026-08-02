@@ -12,23 +12,67 @@ env:
 
 jobs:
   build:
-    name: Build Mod (Android 32 & 64)
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Android32
+            os: ubuntu-latest
+            target: Android32
+
+          - name: Android64
+            os: ubuntu-latest
+            target: Android64
+
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # SỬA TẠI ĐÂY: Dùng dấu phẩy để phân tách Android32,Android64 thay vì dấu cách
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
+        with:
+          combine: true # Bật thuộc tính này để lưu metadata đóng gói
+          target: ${{ matrix.config.target }}
+
+      # Gom trực tiếp file mod riêng lẻ bằng cơ chế quét thông minh tự động của GitHub
+      - name: Upload intermediate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ matrix.config.target }}
+          path: |
+            build*/**/*.geode
+            out/**/*.geode
+            **/*.geode
+          if-no-files-found: warn
+
+  package:
+    name: Package builds
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: build-artifacts
+          pattern: build-output-*
+          merge-multiple: true
+
+      - name: Combine builds into single file
+        uses: geode-sdk/build-geode-mod/combine@main
         id: build
         with:
-          target: Android32,Android64
-          combine: true
+          path: build-artifacts
 
+      # Xuất ra file mod Show Position thành phẩm dứt điểm
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Mod
-          path: ${{ steps.build.outputs.output-path || steps.build.outputs.build-output-path || '**/*.geode' }}
+          path: |
+            build-artifacts/**/*.geode
+            build*/**/*.geode
+            **/*.geode
