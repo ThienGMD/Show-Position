@@ -4,7 +4,7 @@
 
 using namespace geode::prelude;
 
-// Biến lưu trữ trạng thái bật/tắt của nút hiển thị tọa độ
+// Biến tĩnh lưu trạng thái hiển thị tọa độ
 static bool g_showPosition = false;
 
 // 1. Quản lý hiển thị X-Pos và Y-Pos trong màn chơi
@@ -16,10 +16,10 @@ class $modify(PosPlayLayer, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
-        // Định dạng mặc định X-Pos: 0.00000 Y-Pos: 0.00000
+        // Tạo nhãn hiển thị tọa độ với ID an toàn
         auto label = CCLabelBMFont::create("X-Pos: 0.00000 Y-Pos: 0.00000", "bigFont.fnt");
         label->setPosition({ 10.f, 15.f });
-        label->setAnchorPoint({ 0.f, 0.5f }); // Căn lề trái
+        label->setAnchorPoint({ 0.f, 0.5f }); 
         label->setScale(0.35f);
         label->setOpacity(200);
         label->setVisible(g_showPosition);
@@ -35,10 +35,10 @@ class $modify(PosPlayLayer, PlayLayer) {
         PlayLayer::postUpdate(dt);
 
         if (m_fields->m_posLabel && m_player1) {
+            // Luôn cập nhật trạng thái ẩn/hiện theo biến g_showPosition
             m_fields->m_posLabel->setVisible(g_showPosition);
 
             if (g_showPosition) {
-                // Lấy tọa độ X và Y chính xác tới 5 chữ số thập phân
                 auto pos = m_player1->getPosition();
                 std::string posText = fmt::format("X-Pos: {:.5f} Y-Pos: {:.5f}", pos.x, pos.y);
                 m_fields->m_posLabel->setString(posText.c_str());
@@ -63,10 +63,11 @@ class $modify(PosPauseLayer, PauseLayer) {
             0.6f
         );
 
+        // FIX 1: Đồng bộ nút checkbox đúng với giá trị thực tế của biến g_showPosition
+        // Trong Cocos2d-x, hàm toggle(true) sẽ kích hoạt trạng thái "on" của nút
         toggler->toggle(g_showPosition);
         toggler->setPosition({ 35.f, 35.f });
 
-        // Nhãn "Show Position" kế bên checkbox
         auto label = CCLabelBMFont::create("Show Position", "bigFont.fnt");
         label->setScale(0.4f);
         label->setAnchorPoint({ 0.f, 0.5f });
@@ -79,7 +80,8 @@ class $modify(PosPauseLayer, PauseLayer) {
 
     void onTogglePosition(CCObject* sender) {
         auto toggler = static_cast<CCMenuItemToggler*>(sender);
-        // SỬA TẠI ĐÂY: Gán trực tiếp trạng thái của nút, bỏ dấu chấm than (!) bị ngược
-        g_showPosition = toggler->isToggled();
+        // FIX 2: Lật ngược trạng thái (toggle) biến tĩnh dựa trên việc người dùng vừa click vào nút
+        // Thao tác click làm thay đổi trạng thái hiển thị của nút ngay lập tức
+        g_showPosition = !toggler->isToggled();
     }
 };
