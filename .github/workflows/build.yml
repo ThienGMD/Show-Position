@@ -42,15 +42,14 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4 # Thêm bước này để lấy thông tin repository cho lệnh combine
+      - uses: actions/checkout@v4
 
+      # Đã xóa tham số 'version: nightly' bị lỗi ở đây
       - uses: geode-sdk/build-geode-mod/combine@main
         id: build
-        with:
-          version: nightly
 
       - name: Upload Artifact
-        if: ${{ steps.build.outputs.build-output-path != '' }} # Chỉ chạy nếu tìm thấy file build thành công
+        if: ${{ steps.build.outputs.build-output-path != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.build.outputs.build-output-name || 'geode-mod-build' }}
