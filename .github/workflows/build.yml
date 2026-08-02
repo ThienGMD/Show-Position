@@ -1,4 +1,4 @@
-name: Build Geode Mod
+Name: Build Geode Mod
 
 on:
   push:
@@ -36,7 +36,6 @@ jobs:
           combine: false
           target: ${{ matrix.config.target }}
 
-      # FIX TẠI ĐÂY: Chỉ gom file .geode nằm trong thư mục out hoặc build (nơi chứa mod của bạn), không gom bừa bãi toàn bộ máy ảo nữa
       - name: Upload intermediate artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -44,7 +43,7 @@ jobs:
           path: |
             out/**/*.geode
             build/**/*.geode
-          if-no-files-found: error # Báo đỏ ngay nếu không tìm thấy file mod của bạn
+          if-no-files-found: error
 
   package:
     name: Package builds
@@ -58,18 +57,10 @@ jobs:
         with:
           path: build-artifacts
           pattern: build-output-*
-
-      # FIX TẠI ĐÂY: Loại bỏ rác, chỉ cho phép lệnh combine đọc các file mod hợp lệ nằm trong các thư mục build-output-*
-      - name: Combine builds into single file
-        uses: geode-sdk/build-geode-mod/combine@main
-        id: build
-        with:
-          path: build-artifacts
+          merge-multiple: true
 
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
-          name: Show-Position-Mod
-          path: |
-            build-artifacts/**/*.geode
-            out/**/*.geode
+          name: Show-Position-Mod-Android
+          path: build-artifacts/*.geode
