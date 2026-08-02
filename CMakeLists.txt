@@ -1,72 +1,28 @@
-name: Build Geode Mod
+cmake_minimum_required(VERSION 3.21)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "iOS" OR IOS)
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+else()
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64")
+endif()
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
-on:
-  push:
-    branches: ["main", "master"]
-  pull_request:
-    branches: ["main", "master"]
-  workflow_dispatch:
+project(Template VERSION 1.0.0)
 
-jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - name: Android32
-            os: ubuntu-latest
-            target: Android32
+# Add all source files inside src (recursively)
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
-          - name: Android64
-            os: ubuntu-latest
-            target: Android64
+# Set up the mod binary
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
-    name: ${{ matrix.config.name }}
-    runs-on: ${{ matrix.config.os }}
+if (NOT DEFINED ENV{GEODE_SDK})
+    message(FATAL_ERROR "Unable to find Geode SDK! Please define GEODE_SDK environment variable to point to Geode")
+else()
+    message(STATUS "Found Geode: $ENV{GEODE_SDK}")
+endif()
 
-    steps:
-      - uses: actions/checkout@v4
+add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
 
-      # BỔ SUNG QUAN TRỌNG: Cài đặt Android NDK để CMake không bị lỗi biên dịch
-      - name: Set up Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r26b
-          link-to-sdk: true
-
-      - name: Build the mod
-        uses: geode-sdk/build-geode-mod@main
-        with:
-          combine: false
-          target: ${{ matrix.config.target }}
-
-      - name: Upload uncombined build
-        uses: actions/upload-artifact@v4
-        with:
-          name: geode-build-${{ matrix.config.target }}
-          path: build/**/*.mod
-          if-no-files-found: error
-
-  package:
-    name: Package builds
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download all uncombined builds
-        uses: actions/download-artifact@v4
-        with:
-          pattern: geode-build-*
-          merge-multiple: true
-
-      - uses: geode-sdk/build-geode-mod/combine@main
-        id: build
-
-      - name: Upload final artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Show-Position-Builds
-          path: ./**/*.geode
-          if-no-files-found: error
+# Set up dependencies, resources, and link Geode.
+setup_geode_mod(${PROJECT_NAME})
