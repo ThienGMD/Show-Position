@@ -30,16 +30,18 @@ jobs:
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
+          # SỬA LỖI CHÍNH: Tắt tự gộp tại đây để tránh xung đột cấu trúc build Android lẻ
           combine: false
           target: ${{ matrix.config.target }}
 
+      # ĐỒNG BỘ: Đẩy tệp .mod thô lên server GitHub đúng với vị trí lưu trữ của Geode SDK
       - name: Upload uncombined build
         uses: actions/upload-artifact@v4
         with:
           name: geode-build-${{ matrix.config.target }}
-          path: |
+          path: |-
+            ${{ env.GEODE_TRADE_DIR }}
             build/**/*.mod
-            build/**/*.geode
           if-no-files-found: error
 
   package:
@@ -50,18 +52,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SỬA LỖI TẠI ĐÂY: Ép buộc tải toàn bộ file từ Job trước về thẳng thư mục build
+      # ĐỒNG BỘ: Tải toàn bộ mã thô từ các job build độc lập về chung một chỗ
       - name: Download all uncombined builds
         uses: actions/download-artifact@v4
         with:
           pattern: geode-build-*
-          path: build
           merge-multiple: true
 
+      # ĐÓNG GÓI: Gộp các nền tảng Android lại thành một tệp duy nhất
       - uses: geode-sdk/build-geode-mod/combine@main
         id: build
 
+      # ĐẦU RA: Xuất bản gói cài đặt hoàn chỉnh cho người dùng tải xuống
       - uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Builds
-          path: ./**/*.geode
+          path: ${{ steps.build.outputs.build-output-path }}
