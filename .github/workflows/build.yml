@@ -43,12 +43,10 @@ jobs:
 
       - uses: geode-sdk/build-geode-mod/combine@main
         id: build
-        with:
-          version: nightly
 
       - uses: actions/upload-artifact@v4
         with:
-          # SỬA TẠI ĐÂY: Đặt tên cố định cho file tải về (bạn có thể đổi thành tên mod của bạn)
-          name: geode-mod-builds
-          # SỬA TẠI ĐÂY: Quét và gom tất cả các file có đuôi .geode được tạo ra trong thư mục
+          # Đặt tên cố định cho gói Zip lưu trên GitHub Actions
+          name: Show-Position-Builds
+          # Tìm và tải lên tất cả các file .geode được gom lại thành công
           path: ./**/*.geode
