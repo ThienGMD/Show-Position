@@ -30,21 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Action này khi chạy với combine: false sẽ TỰ ĐỘNG build và upload artifact ngầm lên hệ thống.
+      # Không cần dùng actions/upload-artifact ở đây.
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
           combine: false
           target: ${{ matrix.config.target }}
-
-      # Upload file .geode tương ứng với từng phiên bản (Android32 và Android64)
-      - name: Upload intermediate artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-output-${{ matrix.config.target }}
-          path: |
-            out/**/*.geode
-            build/**/*.geode
-          if-no-files-found: error
 
   package:
     name: Package builds
@@ -52,13 +44,13 @@ jobs:
     needs: build
 
     steps:
-      # Bước combine sẽ TỰ ĐỘNG tải tất cả các file từ bước upload (có tên bắt đầu bằng "build-output-") và gộp chúng lại.
-      # Tuyệt đối không cần gọi actions/download-artifact thủ công ở đây.
+      # Action combine sẽ TỰ ĐỘNG tìm và tải các artifact ngầm ở bước trên về đúng thư mục của nó để gộp.
+      # Tuyệt đối không dùng actions/download-artifact hay tham số 'path' ở đây.
       - name: Combine builds into single file
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
 
-      # Sau khi gộp xong, step combine sẽ trả về kết quả. Ta dùng output đó để upload bản Mod cuối cùng.
+      # Sau khi gộp thành công, upload file mod hoàn chỉnh cuối cùng lên.
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
