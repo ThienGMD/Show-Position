@@ -10,7 +10,10 @@ set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
 project(ShowPosition VERSION 1.0.0)
 
+# Gom hết file .cpp trong thư mục src
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
+
+# Tạo ra "thư viện" chính là file mod
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 if (NOT DEFINED ENV{GEODE_SDK})
@@ -20,9 +23,5 @@ else()
 endif()
 
 add_subdirectory($ENV{GEODE_SDK} ${CMAKE_CURRENT_BINARY_DIR}/geode)
-
-CPMAddPackage("gh:matcool/gd-imgui-cocos#5ed86e0")
-
-target_link_libraries(${PROJECT_NAME} imgui-cocos)
 
 setup_geode_mod(${PROJECT_NAME})
