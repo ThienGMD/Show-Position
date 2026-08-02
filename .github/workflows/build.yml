@@ -7,6 +7,10 @@ on:
     branches: ["main", "master"]
   workflow_dispatch:
 
+# THÊM ĐOẠN NÀY: Ép tất cả các Action chạy ngầm bằng Node 24
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
