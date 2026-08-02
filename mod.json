@@ -1,18 +1,17 @@
 {
-	"geode": "5.8.2",
-	"gd": {
-		"win": "2.2081",
-		"android": "2.2081",
-		"mac": "2.2081",
-		"ios": "2.2081"
-	},
-	"id": "thiengmd.showposition",
-	"name": "Show Position",
-	"version": "0.0.1",
-	"developer": "ThienGMD",
-	"description": "Show your ",
-	"dependencies": {
-		"geode.node-ids": ">=v1.23.3"
-	}
+    "geode": "v5.8.2",
+    "gd": {
+        "win": "2.2081",
+        "android": "2.2081",
+        "mac": "2.2081",
+        "ios": "2.2081"
+    },
+    "id": "thiengmd.showposition",
+    "name": "Show Position",
+    "version": "v0.0.1",
+    "developer": "ThienGMD",
+    "description": "Show your position",
+    "dependencies": {
+        "geode.node-ids": ">=v1.23.3"
+    }
 }
-
