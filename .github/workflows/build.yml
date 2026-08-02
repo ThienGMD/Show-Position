@@ -19,15 +19,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Gọi duy nhất 1 Action để tự động tự build cả 2 nền tảng Android và tự động gộp lại thành file .geode hoàn chỉnh
+      # SỬA TẠI ĐÂY: Dùng dấu phẩy để phân tách Android32,Android64 thay vì dấu cách
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         id: build
         with:
-          target: Android32 Android64
+          target: Android32,Android64
           combine: true
 
-      # Xuất file mod Show Position thành phẩm ra tab Artifacts
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
