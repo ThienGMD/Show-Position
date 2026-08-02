@@ -27,17 +27,46 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # BỔ SUNG QUAN TRỌNG: Cài đặt Android NDK để CMake không bị lỗi biên dịch
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26b
+          link-to-sdk: true
+
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          # Ép hệ thống tự động gộp thành file .geode riêng cho từng nền tảng ngay tại đây
-          combine: true
+          combine: false
           target: ${{ matrix.config.target }}
 
-      # Tải trực tiếp file .geode lên làm Artifact ngay sau khi build xong từng nền tảng
-      - name: Upload Mod Package
+      - name: Upload uncombined build
         uses: actions/upload-artifact@v4
         with:
-          name: Show-Position-${{ matrix.config.target }}
+          name: geode-build-${{ matrix.config.target }}
+          path: build/**/*.mod
+          if-no-files-found: error
+
+  package:
+    name: Package builds
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all uncombined builds
+        uses: actions/download-artifact@v4
+        with:
+          pattern: geode-build-*
+          merge-multiple: true
+
+      - uses: geode-sdk/build-geode-mod/combine@main
+        id: build
+
+      - name: Upload final artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Show-Position-Builds
           path: ./**/*.geode
           if-no-files-found: error
