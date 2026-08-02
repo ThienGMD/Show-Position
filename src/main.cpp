@@ -4,10 +4,10 @@
 
 using namespace geode::prelude;
 
-// Variable to store the toggle state of the Show Position button
+// Biến lưu trữ trạng thái bật/tắt của nút hiển thị tọa độ
 static bool g_showPosition = false;
 
-// 1. Manage X-Pos and Y-Pos display in the game level
+// 1. Quản lý hiển thị X-Pos và Y-Pos trong màn chơi
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
@@ -16,10 +16,10 @@ class $modify(PosPlayLayer, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
-        // Default format X-Pos: 0.00000 Y-Pos: 0.00000
+        // Định dạng mặc định X-Pos: 0.00000 Y-Pos: 0.00000
         auto label = CCLabelBMFont::create("X-Pos: 0.00000 Y-Pos: 0.00000", "bigFont.fnt");
         label->setPosition({ 10.f, 15.f });
-        label->setAnchorPoint({ 0.f, 0.5f }); // Left align
+        label->setAnchorPoint({ 0.f, 0.5f }); // Căn lề trái
         label->setScale(0.35f);
         label->setOpacity(200);
         label->setVisible(g_showPosition);
@@ -38,7 +38,7 @@ class $modify(PosPlayLayer, PlayLayer) {
             m_fields->m_posLabel->setVisible(g_showPosition);
 
             if (g_showPosition) {
-                // Get exact X and Y positions with 5 decimal places
+                // Lấy tọa độ X và Y chính xác tới 5 chữ số thập phân
                 auto pos = m_player1->getPosition();
                 std::string posText = fmt::format("X-Pos: {:.5f} Y-Pos: {:.5f}", pos.x, pos.y);
                 m_fields->m_posLabel->setString(posText.c_str());
@@ -47,7 +47,7 @@ class $modify(PosPlayLayer, PlayLayer) {
     }
 };
 
-// 2. Add a Checkbox toggle to the Pause Menu
+// 2. Thêm nút Checkbox bật/tắt vào Pause Menu
 class $modify(PosPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
@@ -56,7 +56,7 @@ class $modify(PosPauseLayer, PauseLayer) {
         menu->setPosition({ 0, 0 });
         menu->setID("show-position-menu"_spr);
 
-        // Checkbox toggle
+        // Khởi tạo Checkbox toggle
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
             menu_selector(PosPauseLayer::onTogglePosition),
@@ -66,7 +66,7 @@ class $modify(PosPauseLayer, PauseLayer) {
         toggler->toggle(g_showPosition);
         toggler->setPosition({ 35.f, 35.f });
 
-        // "Show Position" label next to the checkbox
+        // Nhãn "Show Position" kế bên checkbox
         auto label = CCLabelBMFont::create("Show Position", "bigFont.fnt");
         label->setScale(0.4f);
         label->setAnchorPoint({ 0.f, 0.5f });
@@ -79,6 +79,7 @@ class $modify(PosPauseLayer, PauseLayer) {
 
     void onTogglePosition(CCObject* sender) {
         auto toggler = static_cast<CCMenuItemToggler*>(sender);
-        g_showPosition = !toggler->isToggled();
+        // SỬA TẠI ĐÂY: Gán trực tiếp trạng thái của nút, bỏ dấu chấm than (!) bị ngược
+        g_showPosition = toggler->isToggled();
     }
 };
