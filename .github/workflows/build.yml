@@ -32,11 +32,12 @@ jobs:
 
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
+        id: geode-build
         with:
-          combine: true # Bật thuộc tính này để lưu metadata đóng gói
+          combine: false
           target: ${{ matrix.config.target }}
 
-      # Gom trực tiếp file mod riêng lẻ bằng cơ chế quét thông minh tự động của GitHub
+      # SỬA TẠI ĐÂY: Lưu file build vào thư mục đích mang tên nền tảng để tránh bị ghi đè trùng lặp
       - name: Upload intermediate artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -45,7 +46,6 @@ jobs:
             build*/**/*.geode
             out/**/*.geode
             **/*.geode
-          if-no-files-found: warn
 
   package:
     name: Package builds
@@ -55,19 +55,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SỬA TẠI ĐÂY: Tắt merge-multiple để giữ nguyên cấu trúc thư mục chứa cả 2 file Android32 và Android64
       - uses: actions/download-artifact@v4
         with:
           path: build-artifacts
           pattern: build-output-*
-          merge-multiple: true
 
+      # Đóng gói tự động quét sâu vào các thư mục con
       - name: Combine builds into single file
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
         with:
           path: build-artifacts
 
-      # Xuất ra file mod Show Position thành phẩm dứt điểm
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
