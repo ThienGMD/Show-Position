@@ -39,7 +39,6 @@ jobs:
     needs: build
 
     steps:
-      # SỬA LỖI: Thêm checkout vào đây để định vị thư mục làm việc và xuất biến output chính xác
       - uses: actions/checkout@v4
 
       - uses: geode-sdk/build-geode-mod/combine@main
@@ -49,5 +48,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.build-output-name }}
-          path: ${{ steps.build.outputs.build-output-path }}
+          # SỬA TẠI ĐÂY: Đặt tên cố định cho file tải về (bạn có thể đổi thành tên mod của bạn)
+          name: geode-mod-builds
+          # SỬA TẠI ĐÂY: Quét và gom tất cả các file có đuôi .geode được tạo ra trong thư mục
+          path: ./**/*.geode
