@@ -1,4 +1,4 @@
-Name: Build Geode Mod
+name: Build Geode Mod
 
 on:
   push:
@@ -36,6 +36,7 @@ jobs:
           combine: false
           target: ${{ matrix.config.target }}
 
+      # Upload file .geode tương ứng với từng phiên bản (Android32 và Android64)
       - name: Upload intermediate artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -51,16 +52,15 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@v4
+      # Bước combine sẽ TỰ ĐỘNG tải tất cả các file từ bước upload (có tên bắt đầu bằng "build-output-") và gộp chúng lại.
+      # Tuyệt đối không cần gọi actions/download-artifact thủ công ở đây.
+      - name: Combine builds into single file
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: build
 
-      - uses: actions/download-artifact@v4
-        with:
-          path: build-artifacts
-          pattern: build-output-*
-          merge-multiple: true
-
+      # Sau khi gộp xong, step combine sẽ trả về kết quả. Ta dùng output đó để upload bản Mod cuối cùng.
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Mod-Android
-          path: build-artifacts/*.geode
+          path: ${{ steps.build.outputs.build-output }}
