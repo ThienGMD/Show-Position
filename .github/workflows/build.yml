@@ -30,8 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Action này khi chạy với combine: false sẽ TỰ ĐỘNG build và upload artifact ngầm lên hệ thống.
-      # Không cần dùng actions/upload-artifact ở đây.
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
@@ -44,15 +42,14 @@ jobs:
     needs: build
 
     steps:
-      # Action combine sẽ TỰ ĐỘNG tìm và tải các artifact ngầm ở bước trên về đúng thư mục của nó để gộp.
-      # Tuyệt đối không dùng actions/download-artifact hay tham số 'path' ở đây.
       - name: Combine builds into single file
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
 
-      # Sau khi gộp thành công, upload file mod hoàn chỉnh cuối cùng lên.
+      # FIX TẠI ĐÂY: Dùng dấu **/*.geode để tự động tìm mọi file mod xuất ra ở bất kỳ thư mục nào
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Mod-Android
-          path: ${{ steps.build.outputs.build-output }}
+          path: "**/*.geode"
+          if-no-files-found: error # Sẽ báo đỏ nếu thực sự không có file nào được tạo ra
