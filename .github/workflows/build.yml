@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
+          # Bắt buộc phải có id để hệ thống phân biệt 2 bản khi gộp
           - id: android32
             os: ubuntu-latest
             target: Android32
@@ -30,10 +31,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Bước này sẽ tự động build và TỰ ĐỘNG upload file mod (.geode) lên Artifacts.
-      # Không cần bất kỳ lệnh upload hay combine thủ công nào khác.
+      # Đã sửa thành combine: true để ra lệnh cho Geode SDK chuẩn bị gộp file
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
-          combine: false
+          combine: true
           target: ${{ matrix.config.target }}
+
+  package:
+    name: Package builds
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      # Bước này sẽ tự động thu thập bản 32-bit và 64-bit ở trên để gộp thành 1 file duy nhất
+      - name: Combine builds into single file
+        uses: geode-sdk/build-geode-mod/combine@main
+        id: build
+
+      # Upload file Universal duy nhất lên cho bạn tải về
+      - name: Upload Final Mod
+        uses: actions/upload-artifact@v4
+        with:
+          name: Show-Position-Mod-Universal-Android
+          path: ${{ steps.build.outputs.build-output }}
+          if-no-files-found: error
