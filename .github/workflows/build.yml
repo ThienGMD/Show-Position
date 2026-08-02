@@ -7,6 +7,9 @@ on:
     branches: ["main", "master"]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     strategy:
@@ -27,11 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # SỬA TẠI ĐÂY: Đổi tên id để lấy output chuẩn từ Geode SDK
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
+        id: geode-build
         with:
-          combine: true
+          combine: false # Tắt combine ở bước build lẻ này lẻ ra để tránh xung đột
           target: ${{ matrix.config.target }}
+
+      # THÊM BƯỚC NÀY: Upload file build riêng lẻ của từng nền tảng (Android32/64) lên bộ nhớ tạm
+      - name: Upload intermediate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ matrix.config.target }}
+          path: ${{ steps.geode-build.outputs.build-output-path }}
 
   package:
     name: Package builds
@@ -39,19 +51,26 @@ jobs:
     needs: build
 
     steps:
+      - uses: actions/checkout@v4
+
+      # Tải tất cả các file build lẻ từ job 'build' về thư mục 'build-artifacts'
       - uses: actions/download-artifact@v4
         with:
           path: build-artifacts
           pattern: build-output-*
           merge-multiple: true
 
+      # Tiến hành gộp (combine) các file đã tải về thành file .geode hoàn chỉnh
       - uses: geode-sdk/build-geode-mod/combine@main
         id: build
         with:
           path: build-artifacts
-          version: nightly
+          # Đã xóa dòng 'version: nightly' bị lỗi
 
-      - uses: actions/upload-artifact@v4
+      # Đóng gói và xuất file .geode cuối cùng ra mục Artifacts của GitHub
+      - name: Upload Final Mod
+        if: ${{ steps.build.outputs.build-output-path != '' }}
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.build-output-name }}
+          name: ${{ steps.build.outputs.build-output-name || 'geode-mod-combined' }}
           path: ${{ steps.build.outputs.build-output-path }}
