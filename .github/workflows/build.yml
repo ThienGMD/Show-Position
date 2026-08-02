@@ -57,7 +57,6 @@ jobs:
       - uses: geode-sdk/build-geode-mod/combine@main
         id: build
 
-      # Lưu ý: Bản v4 yêu cầu cung cấp chính xác file cụ thể, không dùng định dạng folder trống
       - name: Upload final artifact
         uses: actions/upload-artifact@v4
         with:
