@@ -16,20 +16,23 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - name: Android32
+          # Bắt buộc phải có 'id' để Geode SDK nhận diện và upload đúng tên
+          - id: android32
             os: ubuntu-latest
             target: Android32
 
-          - name: Android64
+          - id: android64
             os: ubuntu-latest
             target: Android64
 
-    name: ${{ matrix.config.name }}
+    name: ${{ matrix.config.target }}
     runs-on: ${{ matrix.config.os }}
 
     steps:
       - uses: actions/checkout@v4
 
+      # Action này sẽ tự động build và ĐẨY NGẦM file lên server dựa vào 'id' ở trên
+      # KHÔNG ĐƯỢC thêm bước actions/upload-artifact thủ công vào đây
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
         with:
@@ -42,14 +45,15 @@ jobs:
     needs: build
 
     steps:
+      # Action này sẽ TỰ ĐỘNG tìm các file ngầm từ bước build, tải về và gộp thành 1 file duy nhất
       - name: Combine builds into single file
         uses: geode-sdk/build-geode-mod/combine@main
         id: build
 
-      # FIX TẠI ĐÂY: Dùng dấu **/*.geode để tự động tìm mọi file mod xuất ra ở bất kỳ thư mục nào
+      # Bước cuối cùng lấy kết quả từ bước combine để cho bạn tải về
       - name: Upload Final Mod
         uses: actions/upload-artifact@v4
         with:
           name: Show-Position-Mod-Android
-          path: "**/*.geode"
-          if-no-files-found: error # Sẽ báo đỏ nếu thực sự không có file nào được tạo ra
+          path: ${{ steps.build.outputs.build-output }}
+          if-no-files-found: error
