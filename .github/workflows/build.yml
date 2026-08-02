@@ -30,20 +30,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # SỬA TẠI ĐÂY: Đổi tên id để lấy output chuẩn từ Geode SDK
       - name: Build the mod
         uses: geode-sdk/build-geode-mod@main
-        id: geode-build
         with:
-          combine: false # Tắt combine ở bước build lẻ này lẻ ra để tránh xung đột
+          combine: false
           target: ${{ matrix.config.target }}
 
-      # THÊM BƯỚC NÀY: Upload file build riêng lẻ của từng nền tảng (Android32/64) lên bộ nhớ tạm
+      # FIX TRIỆT ĐỂ: Quét trực tiếp thư mục build để tìm file mod mà không cần gọi biến của Geode
       - name: Upload intermediate artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-output-${{ matrix.config.target }}
-          path: ${{ steps.geode-build.outputs.build-output-path }}
+          path: |
+            build*/**/*.geode
+            out/**/*.geode
+            build/**/*.so
+          if-no-files-found: warn
 
   package:
     name: Package builds
@@ -53,24 +55,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Tải tất cả các file build lẻ từ job 'build' về thư mục 'build-artifacts'
       - uses: actions/download-artifact@v4
         with:
           path: build-artifacts
           pattern: build-output-*
           merge-multiple: true
 
-      # Tiến hành gộp (combine) các file đã tải về thành file .geode hoàn chỉnh
       - uses: geode-sdk/build-geode-mod/combine@main
-        id: build
+        id: geode-combine
         with:
           path: build-artifacts
-          # Đã xóa dòng 'version: nightly' bị lỗi
 
-      # Đóng gói và xuất file .geode cuối cùng ra mục Artifacts của GitHub
+      # FIX TRIỆT ĐỂ: Xuất file với tên cố định Show-Position.geode 
       - name: Upload Final Mod
-        if: ${{ steps.build.outputs.build-output-path != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.build.outputs.build-output-name || 'geode-mod-combined' }}
-          path: ${{ steps.build.outputs.build-output-path }}
+          name: Show-Position-Mod
+          path: |
+            build*/**/*.geode
+            out/**/*.geode
+            **/*.geode
