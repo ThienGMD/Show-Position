@@ -27,19 +27,6 @@
             "default": 200,
             "min": 0,
             "max": 255
-        },
-        "label-alignment": {
-            "name": "Screen Alignment",
-            "description": "Choose which corner or side to anchor the coordinates overlay.",
-            "type": "enum",
-            "default": "bottom-left",
-            "value": {
-                "bottom-left": "Bottom-Left",
-                "center-left": "Center-Left",
-                "top-left": "Top-Left",
-                "bottom-right": "Bottom-Right",
-                "center-right": "Center-Right",
-                "top-right": "Top-Right"
             }
         }
     }
