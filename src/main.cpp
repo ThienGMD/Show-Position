@@ -23,12 +23,10 @@ std::string formatCoordinate(const std::string& prefix, float value, int precisi
     return prefix + ": " + ss.str();
 }
 
-// FIX POSITION BUG: Calculates safe alignment within the game's scaled screen boundaries
+// Calculates safe alignment within the game's scaled screen boundaries
 void updateLabelLayout(CCLabelBMFont* label, const std::string& alignment) {
-    // Standard Cocos2d-x scaled window size used by Geometry Dash
     auto winSize = CCDirector::sharedDirector()->getWinSize();
     
-    // Padding offsets to prevent the text from clipping out of mobile screen edges
     float paddingX = 10.f;
     float paddingY = 15.f;
     
@@ -58,7 +56,7 @@ void updateLabelLayout(CCLabelBMFont* label, const std::string& alignment) {
         label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     } 
     else if (alignment == "top-right") {
-        label->setPosition({ winSize.width - paddingX, winSize.height - paddingY });
+        label->setPosition({ winSize.width - paddingX, winSize.height - (paddingY + 25.f) });
         label->setAnchorPoint({ 1.f, 1.f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     }
@@ -85,9 +83,10 @@ class $modify(PosPlayLayer, PlayLayer) {
         label->setOpacity(static_cast<GLubyte>(opacity));
         updateLabelLayout(label, alignment);
 
-        // Add label to the main layer with a very high Z-Order to overlay correctly
-        this->addChild(label, 1000);
-        m_fields->m_posLabel = label;
+        if (this->m_uiLayer) {
+            this->m_uiLayer->addChild(label, 1000);
+            m_fields->m_posLabel = label;
+        }
 
         return true;
     }
@@ -103,7 +102,7 @@ class $modify(PosPlayLayer, PlayLayer) {
                 
                 auto currentMod = Mod::get();
                 int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
-                int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
+                int opacity = static_cast<int>(currentMod->getSettingValue<int66_t>("label-opacity"));
                 std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
 
                 m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(opacity));
