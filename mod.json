@@ -5,7 +5,7 @@
     },
     "id": "thiengmd.showposition",
     "name": "Show Position",
-    "version": "v0.0.1",
+    "version": "v0.1.0",
     "developer": "ThienGMD",
     "description": "Show your position with advanced custom layouts on Android.",
     "dependencies": {
@@ -16,7 +16,7 @@
             "name": "Decimal Precision",
             "description": "Number of decimal places to display (0 to 1000).",
             "type": "int",
-            "default": 15,
+            "default": 2,
             "min": 0,
             "max": 1000
         },
@@ -33,14 +33,14 @@
             "description": "Choose which corner or side to anchor the coordinates overlay.",
             "type": "enum",
             "default": "bottom-left",
-            "values": {
-                "bottom-left": "Bottom-Left",
-                "center-left": "Center-Left",
-                "top-left": "Top-Left",
-                "bottom-right": "Bottom-Right",
-                "center-right": "Center-Right",
-                "top-right": "Top-Right"
-            }
+            "values": [
+                "bottom-left",
+                "center-left",
+                "top-left",
+                "bottom-right",
+                "center-right",
+                "top-right"
+            ]
         }
     }
 }
