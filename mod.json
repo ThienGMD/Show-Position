@@ -5,20 +5,42 @@
     },
     "id": "thiengmd.showposition",
     "name": "Show Position",
-    "version": "v0.0.2",
+    "version": "v0.1.0",
     "developer": "ThienGMD",
-    "description": "Show your position with custom precision from 0 to max.",
+    "description": "Show your position with advanced custom layouts on Android.",
     "dependencies": {
         "geode.node-ids": ">=v1.23.3"
     },
     "settings": {
         "decimal-precision": {
             "name": "Decimal Precision",
-            "description": "Number of decimal places (0 for whole numbers. Warning: values above 15 will show inaccurate digits due to float limits).",
+            "description": "Number of decimal places to display (0 to 1000).",
             "type": "int",
             "default": 15,
             "min": 0,
             "max": 1000
+        },
+        "label-opacity": {
+            "name": "Label Opacity",
+            "description": "Adjust overlay opacity (0 = Invisible, 255 = Fully Opaque).",
+            "type": "int",
+            "default": 200,
+            "min": 0,
+            "max": 255
+        },
+        "label-alignment": {
+            "name": "Screen Alignment",
+            "description": "Choose which corner or side to anchor the coordinates overlay.",
+            "type": "enum",
+            "default": "bottom-left",
+            "value": {
+                "bottom-left": "Bottom-Left",
+                "center-left": "Center-Left",
+                "top-left": "Top-Left",
+                "bottom-right": "Bottom-Right",
+                "center-right": "Center-Right",
+                "top-right": "Top-Right"
+            }
         }
     }
 }
