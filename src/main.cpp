@@ -1,25 +1,67 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PauseLayer.hpp>
-#include <algorithm> // Thêm thư viện này để dùng hàm std::min
 
 using namespace geode::prelude;
 
 // Biến tĩnh lưu trạng thái ẩn/hiện tọa độ
 static bool g_showPosition = false;
 
-// Hàm trợ giúp định dạng chuỗi an toàn không bị giới hạn 15
+// Hàm trợ giúp định dạng chuỗi an toàn dựa trên số lượng chữ số thập phân người dùng nhập
 std::string formatCoordinate(const std::string& prefix, float value, int precision) {
+    // TRƯỜNG HỢP 1: Người dùng chỉnh min = 0 (Không hiện số thập phân)
     if (precision <= 0) {
         return fmt::format("{}: {:.0f}", prefix, value);
     }
-    
-    // Đặt giới hạn an toàn ngầm định là 10,000 để tránh văng game do tràn bộ nhớ (OOM) 
-    // nếu người chơi vô tình nhập một số quá khổng lồ (như 999999999). 
-    // 10,000 số sau dấu phẩy là quá dư sức hiển thị và game vẫn mượt mà.
-    int safePrecision = std::min(precision, 10000);
-    
-    return fmt::format("{}: {:.{}f}", prefix, value, safePrecision);
+    // TRƯỜNG HỢP 2: Người dùng chỉnh số lớn hơn giới hạn an toàn (Tránh crash game do tràn bộ nhớ)
+    else if (precision > 15) {
+        // Sử dụng định dạng mặc định {} để hiển thị hết khả năng của float mà không bị crash
+        return fmt::format("{}: {}", prefix, value);
+    }
+    // TRƯỜNG HỢP 3: Giá trị chuẩn từ 1 đến 15
+    else {
+        return fmt::format("{}: {:.{}f}", prefix, value, precision);
+    }
+}
+
+// Chỉnh vị trí + neo của label theo setting "label-alignment" mà người dùng chọn
+// (trước đây bị để cứng ở góc dưới-trái, đổi setting cũng chả ăn thua gì)
+void applyLabelAlignment(CCLabelBMFont* label) {
+    if (!label) return;
+
+    auto winSize = CCDirector::sharedDirector()->getWinSize();
+    auto alignment = Mod::get()->getSettingValue<std::string>("label-alignment");
+
+    const float margin = 10.f;
+    CCPoint anchor;
+    CCPoint pos;
+
+    if (alignment == "bottom-left") {
+        anchor = { 0.f, 0.f };
+        pos = { margin, margin };
+    } else if (alignment == "center-left") {
+        anchor = { 0.f, 0.5f };
+        pos = { margin, winSize.height / 2.f };
+    } else if (alignment == "top-left") {
+        anchor = { 0.f, 1.f };
+        pos = { margin, winSize.height - margin };
+    } else if (alignment == "bottom-right") {
+        anchor = { 1.f, 0.f };
+        pos = { winSize.width - margin, margin };
+    } else if (alignment == "center-right") {
+        anchor = { 1.f, 0.5f };
+        pos = { winSize.width - margin, winSize.height / 2.f };
+    } else if (alignment == "top-right") {
+        anchor = { 1.f, 1.f };
+        pos = { winSize.width - margin, winSize.height - margin };
+    } else {
+        // Lỡ setting bị lạ/không khớp giá trị nào thì cứ về góc dưới-trái cho chắc
+        anchor = { 0.f, 0.f };
+        pos = { margin, margin };
+    }
+
+    label->setAnchorPoint(anchor);
+    label->setPosition(pos);
 }
 
 // 1. Quản lý hiển thị tọa độ trong PlayLayer
@@ -28,20 +70,32 @@ class $modify(PosPlayLayer, PlayLayer) {
         CCLabelBMFont* m_posLabel = nullptr;
     };
 
-    // Hàm init nhận đủ 3 tham số theo chuẩn Geode mới nhất trên Android
+    // Hàm init phải nhận đủ 3 tham số theo bản Geode mới nhất bên Android, thiếu là lỗi ngay
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
         auto label = CCLabelBMFont::create("XPos: 0\nYPos: 0", "bigFont.fnt");
-        label->setPosition({ 10.f, 25.f });
-        label->setAnchorPoint({ 0.f, 0.f }); 
-        label->setScale(0.30f); 
-        label->setOpacity(200);
+        label->setScale(0.30f);
         label->setVisible(g_showPosition);
         label->setID("show-position-label"_spr);
 
+        // Lấy vị trí/neo theo setting của người dùng, không để cứng góc dưới-trái nữa
+        applyLabelAlignment(label);
+        // Lấy độ mờ theo setting luôn, khỏi cần fix cứng 200 như trước
+        label->setOpacity(static_cast<GLubyte>(Mod::get()->getSettingValue<int64_t>("label-opacity")));
+
         this->addChild(label, 1000);
         m_fields->m_posLabel = label;
+
+        // Đổi setting cái là cập nhật liền, khỏi cần thoát ra vào lại màn chơi
+        Mod::get()->listenForSettingChanges("label-alignment", [this](std::string) {
+            applyLabelAlignment(m_fields->m_posLabel);
+        });
+        Mod::get()->listenForSettingChanges("label-opacity", [this](int64_t value) {
+            if (m_fields->m_posLabel) {
+                m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(value));
+            }
+        });
 
         return true;
     }
@@ -74,9 +128,17 @@ class $modify(PosPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
 
+        // Đặt menu theo winSize (góc trên-trái) chứ để tọa độ cứng (35,35) như cũ
+        // là nó đè lên mấy nút có sẵn của PauseLayer (retry/edit/exit) trên máy tỉ lệ màn hình khác
+        auto winSize = CCDirector::sharedDirector()->getWinSize();
+
         auto menu = CCMenu::create();
-        menu->setPosition({ 0, 0 });
+        menu->setPosition({ 0.f, 0.f });
         menu->setID("show-position-menu"_spr);
+        menu->setAnchorPoint({ 0.f, 0.f });
+
+        const float marginX = 45.f;
+        const float topY = winSize.height - 25.f;
 
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
@@ -84,12 +146,13 @@ class $modify(PosPauseLayer, PauseLayer) {
             0.6f
         );
         toggler->toggle(g_showPosition);
-        toggler->setPosition({ 35.f, 35.f });
+        toggler->setAnchorPoint({ 0.f, 0.5f });
+        toggler->setPosition({ marginX, topY });
 
         auto label = CCLabelBMFont::create("Show Position", "bigFont.fnt");
         label->setScale(0.4f);
         label->setAnchorPoint({ 0.f, 0.5f });
-        label->setPosition({ 50.f, 35.f });
+        label->setPosition({ marginX + 20.f, topY });
 
         auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
         auto copyBtn = CCMenuItemSpriteExtra::create(
@@ -97,7 +160,8 @@ class $modify(PosPauseLayer, PauseLayer) {
             this,
             menu_selector(PosPauseLayer::onCopyPosition)
         );
-        copyBtn->setPosition({ 35.f, 65.f }); 
+        copyBtn->setAnchorPoint({ 0.f, 0.5f });
+        copyBtn->setPosition({ marginX, topY - 30.f });
 
         menu->addChild(toggler);
         menu->addChild(label);
