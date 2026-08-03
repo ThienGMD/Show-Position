@@ -1,92 +1,47 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PauseLayer.hpp>
-#include <sstream>
-#include <iomanip>
+#include <algorithm> // Thêm thư viện này để dùng hàm std::min
 
 using namespace geode::prelude;
 
-// Global runtime visibility tracker
+// Biến tĩnh lưu trạng thái ẩn/hiện tọa độ
 static bool g_showPosition = false;
 
-// Safe precision formatter supporting unlimited decimals without string limits
+// Hàm trợ giúp định dạng chuỗi an toàn không bị giới hạn 15
 std::string formatCoordinate(const std::string& prefix, float value, int precision) {
     if (precision <= 0) {
         return fmt::format("{}: {:.0f}", prefix, value);
     }
     
-    double preciseValue = static_cast<double>(value);
-    std::stringstream ss;
-    ss << std::fixed << std::setprecision(precision);
-    ss << preciseValue;
+    // Đặt giới hạn an toàn ngầm định là 10,000 để tránh văng game do tràn bộ nhớ (OOM) 
+    // nếu người chơi vô tình nhập một số quá khổng lồ (như 999999999). 
+    // 10,000 số sau dấu phẩy là quá dư sức hiển thị và game vẫn mượt mà.
+    int safePrecision = std::min(precision, 10000);
     
-    return prefix + ": " + ss.str();
+    return fmt::format("{}: {:.{}f}", prefix, value, safePrecision);
 }
 
-// Calculates safe alignment within the game's scaled screen boundaries
-void updateLabelLayout(CCLabelBMFont* label, const std::string& alignment) {
-    auto winSize = CCDirector::sharedDirector()->getWinSize();
-    
-    float paddingX = 10.f;
-    float paddingY = 15.f;
-    
-    if (alignment == "bottom-left") {
-        label->setPosition({ paddingX, paddingY });
-        label->setAnchorPoint({ 0.f, 0.f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
-    } 
-    else if (alignment == "center-left") {
-        label->setPosition({ paddingX, winSize.height / 2.f });
-        label->setAnchorPoint({ 0.f, 0.5f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
-    } 
-    else if (alignment == "top-left") {
-        label->setPosition({ paddingX, winSize.height - paddingY });
-        label->setAnchorPoint({ 0.f, 1.f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
-    } 
-    else if (alignment == "bottom-right") {
-        label->setPosition({ winSize.width - paddingX, paddingY });
-        label->setAnchorPoint({ 1.f, 0.f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
-    } 
-    else if (alignment == "center-right") {
-        label->setPosition({ winSize.width - paddingX, winSize.height / 2.f });
-        label->setAnchorPoint({ 1.f, 0.5f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
-    } 
-    else if (alignment == "top-right") {
-        label->setPosition({ winSize.width - paddingX, winSize.height - (paddingY + 25.f) });
-        label->setAnchorPoint({ 1.f, 1.f });
-        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
-    }
-}
-
-// 1. Manage XPos and YPos display during gameplay
+// 1. Quản lý hiển thị tọa độ trong PlayLayer
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
     };
 
+    // Hàm init nhận đủ 3 tham số theo chuẩn Geode mới nhất trên Android
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
         auto label = CCLabelBMFont::create("XPos: 0\nYPos: 0", "bigFont.fnt");
+        label->setPosition({ 10.f, 25.f });
+        label->setAnchorPoint({ 0.f, 0.f }); 
         label->setScale(0.30f); 
+        label->setOpacity(200);
         label->setVisible(g_showPosition);
         label->setID("show-position-label"_spr);
 
-        auto currentMod = Mod::get();
-        int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
-        std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
-        
-        label->setOpacity(static_cast<GLubyte>(opacity));
-        updateLabelLayout(label, alignment);
-
-        if (this->m_uiLayer) {
-            this->m_uiLayer->addChild(label, 1000);
-            m_fields->m_posLabel = label;
-        }
+        this->addChild(label, 1000);
+        m_fields->m_posLabel = label;
 
         return true;
     }
@@ -100,14 +55,11 @@ class $modify(PosPlayLayer, PlayLayer) {
             if (g_showPosition) {
                 auto pos = m_player1->getPosition();
                 
+                // Lấy số chữ số thập phân từ cài đặt Geode
                 auto currentMod = Mod::get();
                 int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
-                int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
-                std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
 
-                m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(opacity));
-                updateLabelLayout(m_fields->m_posLabel, alignment);
-
+                // Gọi hàm định dạng an toàn
                 std::string xText = formatCoordinate("XPos", pos.x, precision);
                 std::string yText = formatCoordinate("YPos", pos.y, precision);
                 
@@ -117,7 +69,7 @@ class $modify(PosPlayLayer, PlayLayer) {
     }
 };
 
-// 2. Add Checkbox and Optimized Copy button to PauseLayer
+// 2. Thêm Checkbox và nút Copy vào PauseLayer
 class $modify(PosPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
@@ -139,13 +91,13 @@ class $modify(PosPauseLayer, PauseLayer) {
         label->setAnchorPoint({ 0.f, 0.5f });
         label->setPosition({ 50.f, 35.f });
 
-        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.4f);
+        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
         auto copyBtn = CCMenuItemSpriteExtra::create(
             copySprite,
             this,
             menu_selector(PosPauseLayer::onCopyPosition)
         );
-        copyBtn->setPosition({ 35.f, 60.f }); 
+        copyBtn->setPosition({ 35.f, 65.f }); 
 
         menu->addChild(toggler);
         menu->addChild(label);
