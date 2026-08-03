@@ -15,7 +15,6 @@ std::string formatCoordinate(const std::string& prefix, float value, int precisi
         return fmt::format("{}: {:.0f}", prefix, value);
     }
     
-    // Cast to double to maximize precision and avoid floating-point trash truncation at 7 digits
     double preciseValue = static_cast<double>(value);
     std::stringstream ss;
     ss << std::fixed << std::setprecision(precision);
@@ -24,37 +23,42 @@ std::string formatCoordinate(const std::string& prefix, float value, int precisi
     return prefix + ": " + ss.str();
 }
 
-// Helper to update position layout dynamically based on user alignment settings
+// FIX POSITION BUG: Calculates safe alignment within the game's scaled screen boundaries
 void updateLabelLayout(CCLabelBMFont* label, const std::string& alignment) {
+    // Standard Cocos2d-x scaled window size used by Geometry Dash
     auto winSize = CCDirector::sharedDirector()->getWinSize();
     
+    // Padding offsets to prevent the text from clipping out of mobile screen edges
+    float paddingX = 10.f;
+    float paddingY = 15.f;
+    
     if (alignment == "bottom-left") {
-        label->setPosition({ 10.f, 25.f });
+        label->setPosition({ paddingX, paddingY });
         label->setAnchorPoint({ 0.f, 0.f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
     } 
     else if (alignment == "center-left") {
-        label->setPosition({ 10.f, winSize.height / 2.f });
+        label->setPosition({ paddingX, winSize.height / 2.f });
         label->setAnchorPoint({ 0.f, 0.5f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
     } 
     else if (alignment == "top-left") {
-        label->setPosition({ 10.f, winSize.height - 25.f });
+        label->setPosition({ paddingX, winSize.height - paddingY });
         label->setAnchorPoint({ 0.f, 1.f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
     } 
     else if (alignment == "bottom-right") {
-        label->setPosition({ winSize.width - 10.f, 25.f });
+        label->setPosition({ winSize.width - paddingX, paddingY });
         label->setAnchorPoint({ 1.f, 0.f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     } 
     else if (alignment == "center-right") {
-        label->setPosition({ winSize.width - 10.f, winSize.height / 2.f });
+        label->setPosition({ winSize.width - paddingX, winSize.height / 2.f });
         label->setAnchorPoint({ 1.f, 0.5f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     } 
     else if (alignment == "top-right") {
-        label->setPosition({ winSize.width - 10.f, winSize.height - 25.f });
+        label->setPosition({ winSize.width - paddingX, winSize.height - paddingY });
         label->setAnchorPoint({ 1.f, 1.f });
         label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     }
@@ -74,7 +78,6 @@ class $modify(PosPlayLayer, PlayLayer) {
         label->setVisible(g_showPosition);
         label->setID("show-position-label"_spr);
 
-        // Fetch dynamic Geode settings for initial setup
         auto currentMod = Mod::get();
         int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
         std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
@@ -82,6 +85,7 @@ class $modify(PosPlayLayer, PlayLayer) {
         label->setOpacity(static_cast<GLubyte>(opacity));
         updateLabelLayout(label, alignment);
 
+        // Add label to the main layer with a very high Z-Order to overlay correctly
         this->addChild(label, 1000);
         m_fields->m_posLabel = label;
 
@@ -102,11 +106,9 @@ class $modify(PosPlayLayer, PlayLayer) {
                 int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
                 std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
 
-                // Live alignment and opacity safety check
                 m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(opacity));
                 updateLabelLayout(m_fields->m_posLabel, alignment);
 
-                // Process high precision string injection
                 std::string xText = formatCoordinate("XPos", pos.x, precision);
                 std::string yText = formatCoordinate("YPos", pos.y, precision);
                 
@@ -125,7 +127,6 @@ class $modify(PosPauseLayer, PauseLayer) {
         menu->setPosition({ 0, 0 });
         menu->setID("show-position-menu"_spr);
 
-        // Visibility Toggler
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
             menu_selector(PosPauseLayer::onTogglePosition),
@@ -139,14 +140,12 @@ class $modify(PosPauseLayer, PauseLayer) {
         label->setAnchorPoint({ 0.f, 0.5f });
         label->setPosition({ 50.f, 35.f });
 
-        // Adjusted Layout: Downscaled "Copy Pos" button to 0.4f scale for compact styling
         auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.4f);
         auto copyBtn = CCMenuItemSpriteExtra::create(
             copySprite,
             this,
             menu_selector(PosPauseLayer::onCopyPosition)
         );
-        // Positioned neatly directly above the standard alignment text row
         copyBtn->setPosition({ 35.f, 60.f }); 
 
         menu->addChild(toggler);
