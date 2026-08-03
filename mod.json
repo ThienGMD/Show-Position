@@ -5,7 +5,7 @@
     },
     "id": "thiengmd.showposition",
     "name": "Show Position",
-    "version": "v0.0.1",
+    "version": "v0.0.2",
     "developer": "ThienGMD",
     "description": "Show your position with custom precision from 0 to max.",
     "dependencies": {
