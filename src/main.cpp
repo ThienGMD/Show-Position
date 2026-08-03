@@ -4,22 +4,38 @@
 
 using namespace geode::prelude;
 
-// Static variable to track the visibility of the position overlay
+// Biến tĩnh lưu trạng thái ẩn/hiện tọa độ
 static bool g_showPosition = false;
 
-// 1. Manage XPos and YPos display during gameplay
+// Hàm trợ giúp định dạng chuỗi an toàn dựa trên số lượng chữ số thập phân người dùng nhập
+std::string formatCoordinate(const std::string& prefix, float value, int precision) {
+    // TRƯỜNG HỢP 1: Người dùng chỉnh min = 0 (Không hiện số thập phân)
+    if (precision <= 0) {
+        return fmt::format("{}: {:.0f}", prefix, value);
+    }
+    // TRƯỜNG HỢP 2: Người dùng chỉnh số lớn hơn giới hạn an toàn (Tránh crash game)
+    else if (precision > 15) {
+        // Sử dụng định dạng mặc định g (động) để máy tính tự hiển thị hết khả năng của float mà không bị crash
+        return fmt::format("{}: {}", prefix, value);
+    }
+    // TRƯỜNG HỢP 3: Giá trị chuẩn từ 1 đến 15
+    else {
+        return fmt::format("{}: {:.{}f}", prefix, value, precision);
+    }
+}
+
+// 1. Quản lý hiển thị tọa độ trong PlayLayer (Cấu trúc Android)
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
     };
 
-    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
-        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
+    bool init(GJGameLevel* level, bool useReplay) {
+        if (!PlayLayer::init(level, useReplay)) return false;
 
-        // Initialize label with placeholder text
-        auto label = CCLabelBMFont::create("XPos: 0.0\nYPos: 0.0", "bigFont.fnt");
+        auto label = CCLabelBMFont::create("XPos: 0\nYPos: 0", "bigFont.fnt");
         label->setPosition({ 10.f, 25.f });
-        label->setAnchorPoint({ 0.f, 0.f }); // Bottom-left alignment
+        label->setAnchorPoint({ 0.f, 0.f }); 
         label->setScale(0.30f); 
         label->setOpacity(200);
         label->setVisible(g_showPosition);
@@ -40,19 +56,21 @@ class $modify(PosPlayLayer, PlayLayer) {
             if (g_showPosition) {
                 auto pos = m_player1->getPosition();
                 
-                // Get user precision choice from Geode Settings
-                int precision = Mod::get()->getSettingValue<int64_t>("decimal-precision");
+                // Lấy số chữ số thập phân từ cài đặt Geode
+                auto currentMod = Mod::get();
+                int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
 
-                // Dynamic format string parsing precision safely into the float format (e.g., "XPos: {:.15f}")
-                std::string formatStr = fmt::format("XPos: {:.{}f}\nYPos: {:.{}f}", pos.x, precision, pos.y, precision);
+                // Gọi hàm định dạng an toàn đã xử lý ở trên
+                std::string xText = formatCoordinate("XPos", pos.x, precision);
+                std::string yText = formatCoordinate("YPos", pos.y, precision);
                 
-                m_fields->m_posLabel->setString(formatStr.c_str());
+                m_fields->m_posLabel->setString(fmt::format("{}\n{}", xText, yText).c_str());
             }
         }
     }
 };
 
-// 2. Add Checkbox and Copy button to the Pause Menu
+// 2. Thêm Checkbox và nút Copy vào PauseLayer
 class $modify(PosPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
@@ -61,7 +79,6 @@ class $modify(PosPauseLayer, PauseLayer) {
         menu->setPosition({ 0, 0 });
         menu->setID("show-position-menu"_spr);
 
-        // Visibility Toggle Checkbox
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
             menu_selector(PosPauseLayer::onTogglePosition),
@@ -75,14 +92,13 @@ class $modify(PosPauseLayer, PauseLayer) {
         label->setAnchorPoint({ 0.f, 0.5f });
         label->setPosition({ 50.f, 35.f });
 
-        // Utility: Copy Button positioned right above the checkbox
         auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
         auto copyBtn = CCMenuItemSpriteExtra::create(
             copySprite,
             this,
             menu_selector(PosPauseLayer::onCopyPosition)
         );
-        copyBtn->setPosition({ 35.f, 65.f });
+        copyBtn->setPosition({ 35.f, 65.f }); 
 
         menu->addChild(toggler);
         menu->addChild(label);
@@ -95,19 +111,18 @@ class $modify(PosPauseLayer, PauseLayer) {
         g_showPosition = !toggler->isToggled();
     }
 
-    // Handles the clipboard utility callback
     void onCopyPosition(CCObject* sender) {
         auto playLayer = PlayLayer::get();
         if (playLayer && playLayer->m_player1) {
             auto pos = playLayer->m_player1->getPosition();
-            int precision = Mod::get()->getSettingValue<int64_t>("decimal-precision");
+            int precision = static_cast<int>(Mod::get()->getSettingValue<int64_t>("decimal-precision"));
             
-            // Format coordinates matching chosen precision
-            std::string copyStr = fmt::format("X: {:.{}f}, Y: {:.{}f}", pos.x, precision, pos.y, precision);
+            // Áp dụng định dạng an toàn cho cả tính năng Copy
+            std::string xStr = formatCoordinate("X", pos.x, precision);
+            std::string yStr = formatCoordinate("Y", pos.y, precision);
+            std::string copyStr = fmt::format("{}, {}", xStr, yStr);
             
-            // Geode native clipboard wrapper
             geode::utils::clipboard::write(copyStr);
-            
             Notification::create("Copied to clipboard!", NotificationIcon::Success)->show();
         } else {
             Notification::create("Failed to get position!", NotificationIcon::Error)->show();
