@@ -13,9 +13,9 @@ std::string formatCoordinate(const std::string& prefix, float value, int precisi
     if (precision <= 0) {
         return fmt::format("{}: {:.0f}", prefix, value);
     }
-    // TRƯỜNG HỢP 2: Người dùng chỉnh số lớn hơn giới hạn an toàn (Tránh crash game)
+    // TRƯỜNG HỢP 2: Người dùng chỉnh số lớn hơn giới hạn an toàn (Tránh crash game do tràn bộ nhớ)
     else if (precision > 15) {
-        // Sử dụng định dạng mặc định g (động) để máy tính tự hiển thị hết khả năng của float mà không bị crash
+        // Sử dụng định dạng mặc định {} để hiển thị hết khả năng của float mà không bị crash
         return fmt::format("{}: {}", prefix, value);
     }
     // TRƯỜNG HỢP 3: Giá trị chuẩn từ 1 đến 15
@@ -24,14 +24,15 @@ std::string formatCoordinate(const std::string& prefix, float value, int precisi
     }
 }
 
-// 1. Quản lý hiển thị tọa độ trong PlayLayer (Cấu trúc Android)
+// 1. Quản lý hiển thị tọa độ trong PlayLayer
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
     };
 
-    bool init(GJGameLevel* level, bool useReplay) {
-        if (!PlayLayer::init(level, useReplay)) return false;
+    // FIX LỖI: Cập nhật hàm init nhận đủ 3 tham số theo chuẩn Geode mới nhất trên Android
+    bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
+        if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
         auto label = CCLabelBMFont::create("XPos: 0\nYPos: 0", "bigFont.fnt");
         label->setPosition({ 10.f, 25.f });
@@ -60,7 +61,7 @@ class $modify(PosPlayLayer, PlayLayer) {
                 auto currentMod = Mod::get();
                 int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
 
-                // Gọi hàm định dạng an toàn đã xử lý ở trên
+                // Gọi hàm định dạng an toàn
                 std::string xText = formatCoordinate("XPos", pos.x, precision);
                 std::string yText = formatCoordinate("YPos", pos.y, precision);
                 
@@ -117,7 +118,6 @@ class $modify(PosPauseLayer, PauseLayer) {
             auto pos = playLayer->m_player1->getPosition();
             int precision = static_cast<int>(Mod::get()->getSettingValue<int64_t>("decimal-precision"));
             
-            // Áp dụng định dạng an toàn cho cả tính năng Copy
             std::string xStr = formatCoordinate("X", pos.x, precision);
             std::string yStr = formatCoordinate("Y", pos.y, precision);
             std::string copyStr = fmt::format("{}, {}", xStr, yStr);
