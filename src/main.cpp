@@ -102,7 +102,7 @@ class $modify(PosPlayLayer, PlayLayer) {
                 
                 auto currentMod = Mod::get();
                 int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
-                int opacity = static_cast<int>(currentMod->getSettingValue<int66_t>("label-opacity"));
+                int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
                 std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
 
                 m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(opacity));
