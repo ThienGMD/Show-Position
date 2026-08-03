@@ -1,46 +1,86 @@
 #include <Geode/Geode.hpp>
 #include <Geode/modify/PlayLayer.hpp>
 #include <Geode/modify/PauseLayer.hpp>
+#include <sstream>
+#include <iomanip>
 
 using namespace geode::prelude;
 
-// Biến tĩnh lưu trạng thái ẩn/hiện tọa độ
+// Global runtime visibility tracker
 static bool g_showPosition = false;
 
-// Hàm trợ giúp định dạng chuỗi an toàn dựa trên số lượng chữ số thập phân người dùng nhập
+// Safe precision formatter supporting unlimited decimals without string limits
 std::string formatCoordinate(const std::string& prefix, float value, int precision) {
-    // TRƯỜNG HỢP 1: Người dùng chỉnh min = 0 (Không hiện số thập phân)
     if (precision <= 0) {
         return fmt::format("{}: {:.0f}", prefix, value);
     }
-    // TRƯỜNG HỢP 2: Người dùng chỉnh số lớn hơn giới hạn an toàn (Tránh crash game do tràn bộ nhớ)
-    else if (precision > 15) {
-        // Sử dụng định dạng mặc định {} để hiển thị hết khả năng của float mà không bị crash
-        return fmt::format("{}: {}", prefix, value);
-    }
-    // TRƯỜNG HỢP 3: Giá trị chuẩn từ 1 đến 15
-    else {
-        return fmt::format("{}: {:.{}f}", prefix, value, precision);
+    
+    // Cast to double to maximize precision and avoid floating-point trash truncation at 7 digits
+    double preciseValue = static_cast<double>(value);
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(precision);
+    ss << preciseValue;
+    
+    return prefix + ": " + ss.str();
+}
+
+// Helper to update position layout dynamically based on user alignment settings
+void updateLabelLayout(CCLabelBMFont* label, const std::string& alignment) {
+    auto winSize = CCDirector::sharedDirector()->getWinSize();
+    
+    if (alignment == "bottom-left") {
+        label->setPosition({ 10.f, 25.f });
+        label->setAnchorPoint({ 0.f, 0.f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
+    } 
+    else if (alignment == "center-left") {
+        label->setPosition({ 10.f, winSize.height / 2.f });
+        label->setAnchorPoint({ 0.f, 0.5f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
+    } 
+    else if (alignment == "top-left") {
+        label->setPosition({ 10.f, winSize.height - 25.f });
+        label->setAnchorPoint({ 0.f, 1.f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentLeft);
+    } 
+    else if (alignment == "bottom-right") {
+        label->setPosition({ winSize.width - 10.f, 25.f });
+        label->setAnchorPoint({ 1.f, 0.f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
+    } 
+    else if (alignment == "center-right") {
+        label->setPosition({ winSize.width - 10.f, winSize.height / 2.f });
+        label->setAnchorPoint({ 1.f, 0.5f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
+    } 
+    else if (alignment == "top-right") {
+        label->setPosition({ winSize.width - 10.f, winSize.height - 25.f });
+        label->setAnchorPoint({ 1.f, 1.f });
+        label->setAlignment(CCTextAlignment::kCCTextAlignmentRight);
     }
 }
 
-// 1. Quản lý hiển thị tọa độ trong PlayLayer
+// 1. Manage XPos and YPos display during gameplay
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
     };
 
-    // FIX LỖI: Cập nhật hàm init nhận đủ 3 tham số theo chuẩn Geode mới nhất trên Android
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
         auto label = CCLabelBMFont::create("XPos: 0\nYPos: 0", "bigFont.fnt");
-        label->setPosition({ 10.f, 25.f });
-        label->setAnchorPoint({ 0.f, 0.f }); 
         label->setScale(0.30f); 
-        label->setOpacity(200);
         label->setVisible(g_showPosition);
         label->setID("show-position-label"_spr);
+
+        // Fetch dynamic Geode settings for initial setup
+        auto currentMod = Mod::get();
+        int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
+        std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
+        
+        label->setOpacity(static_cast<GLubyte>(opacity));
+        updateLabelLayout(label, alignment);
 
         this->addChild(label, 1000);
         m_fields->m_posLabel = label;
@@ -57,11 +97,16 @@ class $modify(PosPlayLayer, PlayLayer) {
             if (g_showPosition) {
                 auto pos = m_player1->getPosition();
                 
-                // Lấy số chữ số thập phân từ cài đặt Geode
                 auto currentMod = Mod::get();
                 int precision = static_cast<int>(currentMod->getSettingValue<int64_t>("decimal-precision"));
+                int opacity = static_cast<int>(currentMod->getSettingValue<int64_t>("label-opacity"));
+                std::string alignment = currentMod->getSettingValue<std::string>("label-alignment");
 
-                // Gọi hàm định dạng an toàn
+                // Live alignment and opacity safety check
+                m_fields->m_posLabel->setOpacity(static_cast<GLubyte>(opacity));
+                updateLabelLayout(m_fields->m_posLabel, alignment);
+
+                // Process high precision string injection
                 std::string xText = formatCoordinate("XPos", pos.x, precision);
                 std::string yText = formatCoordinate("YPos", pos.y, precision);
                 
@@ -71,7 +116,7 @@ class $modify(PosPlayLayer, PlayLayer) {
     }
 };
 
-// 2. Thêm Checkbox và nút Copy vào PauseLayer
+// 2. Add Checkbox and Optimized Copy button to PauseLayer
 class $modify(PosPauseLayer, PauseLayer) {
     void customSetup() {
         PauseLayer::customSetup();
@@ -80,6 +125,7 @@ class $modify(PosPauseLayer, PauseLayer) {
         menu->setPosition({ 0, 0 });
         menu->setID("show-position-menu"_spr);
 
+        // Visibility Toggler
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
             menu_selector(PosPauseLayer::onTogglePosition),
@@ -93,13 +139,15 @@ class $modify(PosPauseLayer, PauseLayer) {
         label->setAnchorPoint({ 0.f, 0.5f });
         label->setPosition({ 50.f, 35.f });
 
-        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.5f);
+        // Adjusted Layout: Downscaled "Copy Pos" button to 0.4f scale for compact styling
+        auto copySprite = ButtonSprite::create("Copy Pos", "goldFont.fnt", "GJ_button_01.png", 0.4f);
         auto copyBtn = CCMenuItemSpriteExtra::create(
             copySprite,
             this,
             menu_selector(PosPauseLayer::onCopyPosition)
         );
-        copyBtn->setPosition({ 35.f, 65.f }); 
+        // Positioned neatly directly above the standard alignment text row
+        copyBtn->setPosition({ 35.f, 60.f }); 
 
         menu->addChild(toggler);
         menu->addChild(label);
