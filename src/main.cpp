@@ -7,7 +7,7 @@ using namespace geode::prelude;
 // Biến tĩnh lưu trạng thái hiển thị tọa độ
 static bool g_showPosition = false;
 
-// 1. Quản lý hiển thị X-Pos và Y-Pos trong màn chơi
+// 1. Quản lý hiển thị XPos và YPos trong màn chơi
 class $modify(PosPlayLayer, PlayLayer) {
     struct Fields {
         CCLabelBMFont* m_posLabel = nullptr;
@@ -16,11 +16,14 @@ class $modify(PosPlayLayer, PlayLayer) {
     bool init(GJGameLevel* level, bool useReplay, bool dontCreateObjects) {
         if (!PlayLayer::init(level, useReplay, dontCreateObjects)) return false;
 
-        // Tạo nhãn hiển thị tọa độ với ID an toàn
-        auto label = CCLabelBMFont::create("X-Pos: 0.00000 Y-Pos: 0.00000", "bigFont.fnt");
-        label->setPosition({ 10.f, 15.f });
-        label->setAnchorPoint({ 0.f, 0.5f }); 
-        label->setScale(0.35f);
+        // Khởi tạo nhãn với 2 dòng, độ chính xác mặc định 15 chữ số
+        auto label = CCLabelBMFont::create("XPos: 0.000000000000000\nYPos: 0.000000000000000", "bigFont.fnt");
+        
+        // Điều chỉnh vị trí: Xích lên một chút (Y: 25.f) để không bị che khuất bởi viền dưới màn hình
+        label->setPosition({ 10.f, 25.f });
+        // Điểm neo {0.f, 0.f} giúp căn lề trái và cố định gốc tọa độ từ đáy nhãn lên trên
+        label->setAnchorPoint({ 0.f, 0.f }); 
+        label->setScale(0.30f); // Thu nhỏ scale một chút vì chuỗi 15 chữ số rất dài
         label->setOpacity(200);
         label->setVisible(g_showPosition);
         label->setID("show-position-label"_spr);
@@ -35,12 +38,12 @@ class $modify(PosPlayLayer, PlayLayer) {
         PlayLayer::postUpdate(dt);
 
         if (m_fields->m_posLabel && m_player1) {
-            // Luôn cập nhật trạng thái ẩn/hiện theo biến g_showPosition
             m_fields->m_posLabel->setVisible(g_showPosition);
 
             if (g_showPosition) {
                 auto pos = m_player1->getPosition();
-                std::string posText = fmt::format("X-Pos: {:.5f} Y-Pos: {:.5f}", pos.x, pos.y);
+                // Định dạng hiển thị chính xác 15 chữ số thập phân và xuống dòng (\n)
+                std::string posText = fmt::format("XPos: {:.15f}\nYPos: {:.15f}", pos.x, pos.y);
                 m_fields->m_posLabel->setString(posText.c_str());
             }
         }
@@ -56,15 +59,12 @@ class $modify(PosPauseLayer, PauseLayer) {
         menu->setPosition({ 0, 0 });
         menu->setID("show-position-menu"_spr);
 
-        // Khởi tạo Checkbox toggle
         auto toggler = CCMenuItemToggler::createWithStandardSprites(
             this,
             menu_selector(PosPauseLayer::onTogglePosition),
             0.6f
         );
 
-        // FIX 1: Đồng bộ nút checkbox đúng với giá trị thực tế của biến g_showPosition
-        // Trong Cocos2d-x, hàm toggle(true) sẽ kích hoạt trạng thái "on" của nút
         toggler->toggle(g_showPosition);
         toggler->setPosition({ 35.f, 35.f });
 
@@ -80,8 +80,6 @@ class $modify(PosPauseLayer, PauseLayer) {
 
     void onTogglePosition(CCObject* sender) {
         auto toggler = static_cast<CCMenuItemToggler*>(sender);
-        // FIX 2: Lật ngược trạng thái (toggle) biến tĩnh dựa trên việc người dùng vừa click vào nút
-        // Thao tác click làm thay đổi trạng thái hiển thị của nút ngay lập tức
         g_showPosition = !toggler->isToggled();
     }
 };
